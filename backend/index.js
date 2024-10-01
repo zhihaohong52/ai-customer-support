@@ -42,7 +42,7 @@ const getResponseWithFallback = async (prompt) => {
     const completion = await retryWithBackoff(() => openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a helpful assistant." },
+        { role: "system", content: "You are a customer service agent for a bank." },
         { role: "user", content: prompt },
       ],
     }));
