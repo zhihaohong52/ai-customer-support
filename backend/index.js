@@ -1,8 +1,10 @@
 // backend/index.js
-import express from 'express';      // Express framework
+import express, { query } from 'express';      // Express framework
 import cors from 'cors';            // CORS middleware
 import OpenAI from 'openai';        // OpenAI SDK
 import { GoogleGenerativeAI } from '@google/generative-ai'; // Google Generative AI SDK
+import { MilvusClient, DataType, ConsistencyLevelEnum } from '@zilliz/milvus2-sdk-node'; // Milvus SDK
+import { pipeline, env } from '@xenova/transformers';  // Import the pipeline from Xenova
 import 'dotenv/config';             // Load environment variables from .env
 
 const app = express();
@@ -23,6 +25,94 @@ const genAI = new GoogleGenerativeAI({
 });
 const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+// Initialize Milvus client
+const address = process.env.MILVUS_ADDRESS;
+const token = process.env.MILVUS_TOKEN;
+
+
+if (!address || !token) {
+  throw new Error('MILVUS_ADDRESS or MILVUS_TOKEN environment variables are missing.');
+}
+
+const client = new MilvusClient({address, token})
+
+// Hugging Face pipeline to generate embeddings
+class MyEmbeddingPipeline {
+  static task = 'feature-extraction'; // Task for embeddings
+  static model = 'Xenova/bert-base-uncased'; // Use the same model as used for embedding in Milvus
+  static instance = null;
+
+  static async getInstance(progress_callback = null) {
+    if (this.instance === null) {
+      // Initialize the pipeline if not already created
+      this.instance = await pipeline(this.task, this.model, { progress_callback });
+    }
+    return this.instance;
+  }
+}
+
+// Function to generate embeddings for the user query
+const generateQueryEmbedding = async (userQuery) => {
+  try {
+    // Get the embedding pipeline instance
+    const embeddingPipeline = await MyEmbeddingPipeline.getInstance();
+
+    // Use the pipeline to generate embeddings
+    const embeddings = await embeddingPipeline(userQuery);
+
+    // Extract the first 768 values (the CLS token's embedding)
+    const clsEmbedding = embeddings.data.slice(0, 768);  // Assuming embeddings.data is the raw data
+
+    console.log('Generated Embedding (CLS):', clsEmbedding);
+    console.log('Embedding size:', clsEmbedding.length);
+
+    const clsEmbeddingArray = Array.from(clsEmbedding);  // Convert Float32Array to regular array
+
+    console.log('IsArray: ', Array.isArray(clsEmbeddingArray));
+
+    // Verify the length of the embedding
+    if (clsEmbeddingArray.length === 768) {
+      return clsEmbeddingArray;  // Return the correct embedding for Milvus search
+    } else {
+      throw new Error(`Unexpected embedding size: ${clsEmbeddingArray.length}. Expected 768.`);
+    }
+  } catch (error) {
+    console.error('Error generating query embedding:', error);
+    throw error;
+  }
+};
+
+// Search Milvus for similar embeddings
+const searchMilvus = async (queryEmbedding) => {
+  try {
+    // Ensure the embedding is valid
+    if (!Array.isArray(queryEmbedding) || queryEmbedding.length === 0) {
+      throw new Error('Query embedding is invalid or empty.');
+    }
+
+    const searchParams = {
+      collection_name: 'banking77_embeddings',
+      consistency_level: ConsistencyLevelEnum.Bounded,
+      output_fields: ['intent'],
+      search_params: {
+        anns_field: 'vector',
+        metric_type: 'L2',
+        params: JSON.stringify({ nprobe: 10 }),
+        topk: 5,
+      },
+      vectors: [queryEmbedding]
+    };
+
+    const results = await client.search(searchParams);
+
+    console.log('Search Results:', results);
+    return results.results.map((result) => result.id);
+  } catch (error) {
+    console.error('Error searching Milvus:', error);
+    throw error;
+  }
+};
+
 // Retry logic with exponential backoff
 const retryWithBackoff = async (fn, retries = 3, delay = 1000) => {
   try {
@@ -36,7 +126,13 @@ const retryWithBackoff = async (fn, retries = 3, delay = 1000) => {
 };
 
 // Function to call OpenAI and fallback to Gemini if needed
-const getResponseWithFallback = async (prompt) => {
+const generateResponseWithOpenAI = async (userQuery, context) => {
+  const prompt = `
+    You are a helpful banking customer support assistant.
+    User asked: "${userQuery}"
+    Context: "${context}"
+    Based on this, provide a helpful response.
+  `;
   try {
     // Try calling OpenAI with retry logic
     const completion = await retryWithBackoff(() => openai.chat.completions.create({
@@ -64,19 +160,28 @@ const getResponseWithFallback = async (prompt) => {
 
 // Route to handle chat requests
 app.post('/api/chat', async (req, res) => {
-    console.log('Received a request to /api/chat'); // Log when the route is hit
-    const { prompt } = req.body;
+  console.log('Received a request to /api/chat'); // Log when the route is hit
+  const { prompt } = req.body;
 
-    try {
-      const response = await getResponseWithFallback(prompt);
-      res.json({ message: response });
-    } catch (error) {
-      console.error('Error processing request:', error.message);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  try {
+    // Step 1: Generate query embedding
+    const queryEmbedding = await generateQueryEmbedding(prompt);
+
+    // Step 2: Search Milvus for similar embeddings
+    const results = await searchMilvus(queryEmbedding);
+
+    // Step 3: Generate response using retrieved context and OpenAI
+    const context = `Relevant intentions: ${results.join(', ')}`; // Placeholder context
+    const response = await generateResponseWithOpenAI(prompt, context);
+
+    res.json({ message: response });
+  } catch (error) {
+    console.error('Error processing request:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+console.log(`Server running on port ${port}`);
 });

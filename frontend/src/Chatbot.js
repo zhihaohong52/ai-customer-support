@@ -1,5 +1,5 @@
-// src/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
 
 const Chatbot = () => {
   const [input, setInput] = useState('');
@@ -19,24 +19,25 @@ const Chatbot = () => {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { text: input, sender: 'user' };
+    const userMessage = { text: input, sender: 'user', timestamp: new Date().toLocaleTimeString() };
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
     setInput('');
 
     try {
-      const response = await fetch('http://localhost:8080/api/chat', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: input }),
       });
 
       const data = await response.json();
-      const aiMessage = { text: data.message, sender: 'ai' };
+      const aiMessage = { text: data.message, sender: 'ai', timestamp: new Date().toLocaleTimeString() };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error fetching AI response:', error);
-      const errorMessage = { text: 'Error connecting to the AI service.', sender: 'ai' };
+      const errorMessage = { text: 'Error connecting to the AI service.', sender: 'error', timestamp: new Date().toLocaleTimeString() };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -49,8 +50,9 @@ const Chatbot = () => {
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((msg, index) => (
           <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-            <div className={`max-w-xs p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'} text-left`}>
-              {msg.text}
+            <div className={`max-w-xs p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : msg.sender === 'ai' ? 'bg-gray-300 text-black' : 'bg-red-500 text-white'} text-left`}>
+              <p>{msg.text}</p>
+              <span className="block text-xs text-right">{msg.timestamp}</span> {/* Add timestamp */}
             </div>
           </div>
         ))}
@@ -60,7 +62,7 @@ const Chatbot = () => {
       {/* Input area */}
       <div className="p-4 bg-white shadow-md">
         <div className="flex items-center space-x-2">
-          <textarea
+          <TextareaAutosize
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
