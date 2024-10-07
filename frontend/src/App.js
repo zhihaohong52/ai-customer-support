@@ -48,28 +48,33 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>AI Customer Support</h1>
-        {user && (
-          <div className="profile-container">
-            {/* Profile Picture */}
-            <img
-              src={user.photoURL || 'https://via.placeholder.com/40'}  // Use user's profile picture or a placeholder
-              alt="Profile"
-              className="profile-pic"
-              onClick={toggleDropdown}
-            />
+      <header className={`App-header ${user ? 'logged-in' : ''}`}>
+        <div className="header-content">
+          <h1 className="text-2xl font-bold header-title">AI Customer Support</h1>
+          {user && (
+            <div className="profile-container">
+              {/* Display "Welcome {username}" */}
+              <div className="welcome-text">Welcome, {user.displayName || user.email}</div>
 
-            {/* Dropdown Menu */}
-            {dropdownOpen && (
-              <div className="dropdown">
-                <button onClick={handleSignOut} className="App-link">
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              {/* Profile Picture */}
+              <img
+                src={user.photoURL || 'https://via.placeholder.com/40'}  // Use user's profile picture or a placeholder
+                alt="Profile"
+                className="profile-pic"
+                onClick={toggleDropdown}
+              />
+
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="dropdown">
+                  <button onClick={handleSignOut} className="App-link">
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="App-main">
@@ -118,7 +123,7 @@ function App() {
             </div>
           </div>
         ) : (
-          <Chatbot /> // Chatbot component
+            <Chatbot user={user} />
         )}
       </main>
     </div>

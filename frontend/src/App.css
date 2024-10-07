@@ -19,16 +19,14 @@ body {
 /* Header styling */
 .App-header {
   background-color: #282c34;
-  color: white;
-  height: 60px;
   display: flex;
-  justify-content: center;
+  justify-content: center; /* Center the title */
   align-items: center;
+  padding: 10px;
+  color: white;
   position: relative;
-}
-
-h1 {
-  font-size: large;
+  width: 100%;
+  height: 60px; /* Fixed height */
 }
 
 .App-main {
@@ -53,12 +51,37 @@ h1 {
   width: 100%;
 }
 
+.header-content {
+  display: flex;
+  justify-content: center; /* Center the title horizontally */
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.header-title {
+  position: relative;
+  z-index: 1; /* Ensure the title is on top */
+  text-align: center;
+}
+
 .profile-container {
   position: absolute;
-  top: 10px;
-  right: 20px;
+  right: 20px; /* Keep the profile container on the right */
   display: flex;
-  align-items: center;
+  align-items: center; /* Aligns profile pic and welcome text properly */
+  max-width: 25%; /* Prevents the profile section from taking too much space */
+}
+
+.welcome-text {
+  color: white;
+  margin-right: 10px; /* Add spacing between the welcome text and profile picture */
+  font-size: 14px;
+  text-align: right;
+  word-wrap: break-word; /* Ensures text wraps */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
+  white-space: normal; /* Allows the text to wrap */
 }
 
 .profile-pic {
@@ -70,7 +93,8 @@ h1 {
 
 .dropdown {
   position: absolute;
-  top: 50px;
+  top: 60px;
+  width: 200px;
   right: 0;
   background-color: white;
   color: black;
@@ -78,6 +102,15 @@ h1 {
   border-radius: 5px;
   padding: 10px;
   z-index: 999;
+}
+
+.dropdown button {
+  background: none;
+  border: none;
+  color: black;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 /* Sign-in buttons */
@@ -117,6 +150,17 @@ h1 {
   border-radius: 5px;
 }
 
+/* Media query for screens below 600px */
+@media (max-width: 600px) {
+  .welcome-text {
+    display: none; /* Hide welcome text on smaller screens */
+  }
+
+  .profile-container {
+    justify-content: flex-end; /* Ensure profile picture stays aligned on the right */
+  }
+}
+
 /* Chat container */
 .chat-container {
   flex-grow: 1;
@@ -134,6 +178,13 @@ h1 {
 
 .MessageInput {
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  background-color: white;
+  background-color: #fff;
   padding: 10px;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: flex-end; /* Right-align the content */
+  font-size: 12px; /* Optional: Adjust the font size of the timestamp */
+  color: #999; /* Optional: Lighten the timestamp color */
 }

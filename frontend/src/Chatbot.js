@@ -6,11 +6,13 @@ import {
   ChatContainer,
   MessageList,
   Message,
+  MessageSeparator,
   MessageInput,
-  TypingIndicator
+  TypingIndicator,
+  Avatar
 } from '@chatscope/chat-ui-kit-react';
 
-const Chatbot = () => {
+const Chatbot = ({ user }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,13 @@ const Chatbot = () => {
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { text: input, sender: 'user', timestamp: new Date().toLocaleTimeString() };
+    const userMessage = {
+      text: input,
+      sender: 'user',
+      timestamp: new Date(),
+      profilePicture: user.photoURL || 'https://via.placeholder.com/40', // Use user profile picture or a placeholder
+    };
+
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
     setInput('');
@@ -49,11 +57,23 @@ const Chatbot = () => {
       });
 
       const data = await response.json();
-      const aiMessage = { text: data.message, sender: 'ai', timestamp: new Date().toLocaleTimeString() };
+      const aiMessage = {
+        text: data.message,
+        sender: 'ai',
+        timestamp: new Date(),
+        profilePicture: 'https://via.placeholder.com/40?text=AI', // Placeholder for AI profile picture
+      };
+
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error fetching AI response:', error);
-      const errorMessage = { text: 'Error connecting to the AI service.', sender: 'error', timestamp: new Date().toLocaleTimeString() };
+      const errorMessage = {
+        text: 'Error connecting to the AI service. Please try again later.',
+        sender: 'error',
+        timestamp: new Date(),
+        profilePicture: 'https://via.placeholder.com/40?text=Err',
+      };
+
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -64,18 +84,33 @@ const Chatbot = () => {
     <div className="chat-container">
       <MainContainer responsive style={{ height: '100%' }}>
         <ChatContainer>
-          <MessageList typingIndicator={loading ? <TypingIndicator content="AI is typing..." /> : null}>
+        <MessageList typingIndicator={loading ? <TypingIndicator content="AI is typing..." /> : null}>
             {messages.map((msg, index) => (
-              <Message
-                key={index}
-                model={{
-                  message: msg.text,
-                  sentTime: msg.timestamp,
-                  sender: msg.sender === 'user' ? 'You' : 'AI',
-                  direction: msg.sender === 'user' ? 'outgoing' : 'incoming',
-                  position: 'normal'
-                }}
-              />
+              <>
+                {index === 0 || new Date(messages[index].timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString() ? (
+                  <MessageSeparator content={new Date(msg.timestamp).toLocaleDateString()} />
+                ) : null}
+
+                <Message
+                  key={index}
+                  model={{
+                    direction: msg.sender === 'user' ? 'outgoing' : 'incoming',
+                    position: 'normal',
+                    sender: msg.sender,
+                  }}
+                  avatarPosition={msg.sender === 'user' ? 'trailing' : 'leading'}
+                >
+                  <Avatar
+                    src={msg.profilePicture}
+                    name={msg.sender === 'user' ? 'You' : 'AI'}
+                    size="40"
+                  />
+                  <Message.TextContent text={msg.text} />
+                  <Message.Footer className="message-footer"> {/* Add the class here */}
+                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </Message.Footer>
+                </Message>
+              </>
             ))}
             <div ref={messageEndRef} />
           </MessageList>
