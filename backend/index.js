@@ -4,7 +4,7 @@ import cors from 'cors';            // CORS middleware
 import OpenAI from 'openai';        // OpenAI SDK
 import { GoogleGenerativeAI } from '@google/generative-ai'; // Google Generative AI SDK
 import { MilvusClient, DataType, ConsistencyLevelEnum } from '@zilliz/milvus2-sdk-node'; // Milvus SDK
-import { pipeline, env } from '@xenova/transformers';  // Import the pipeline from Xenova
+import { pipeline } from '@xenova/transformers';  // Import Xenova pipeline
 import 'dotenv/config';             // Load environment variables from .env
 
 const app = express();
@@ -39,7 +39,7 @@ const client = new MilvusClient({address, token})
 // Hugging Face pipeline to generate embeddings
 class MyEmbeddingPipeline {
   static task = 'feature-extraction'; // Task for embeddings
-  static model = 'Xenova/bert-base-uncased'; // Use the same model as used for embedding in Milvus
+  static model = 'Xenova/all-mpnet-base-v2';  // Model used for embedding
   static instance = null;
 
   static async getInstance(progress_callback = null) {
@@ -96,8 +96,8 @@ const searchMilvus = async (queryEmbedding) => {
       output_fields: ['intent'],
       search_params: {
         anns_field: 'vector',
-        metric_type: 'L2',
-        params: JSON.stringify({ nprobe: 10 }),
+        metric_type: 'IP',
+        params: JSON.stringify({ nprobe: 16 }),
         topk: 5,
       },
       vectors: [queryEmbedding]
@@ -130,7 +130,7 @@ const generateResponseWithOpenAI = async (userQuery, context) => {
   const prompt = `
     You are a helpful banking customer support assistant.
     User asked: "${userQuery}"
-    Context: "${context}"
+    Possible issues: "${context}"
     Based on this, provide a helpful response.
   `;
   try {
