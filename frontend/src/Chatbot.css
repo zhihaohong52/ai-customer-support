@@ -1,0 +1,48 @@
+/* frontend/src/Chatbot.css */
+/* Chat container */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px) !important; /* Force the height to subtract the header height */
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.sidebar{
+  width: 300px;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  height: 100%;
+  box-shadow: #e0e0e0;
+}
+
+/* Ensure that the message list scrolls independently */
+.MainContainer {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%; /* Ensure it takes up all available space */
+}
+
+.MainContainer .cs-chat__list {
+  flex-grow: 1; /* Let the chat list grow to fill available space */
+  overflow-y: auto; /* Enable scrolling for the chat list */
+  padding: 10px;
+}
+
+.ChatContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px); /* Subtract the header height */
+  padding: 10px;
+}
+
+.MessageInput {
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  padding: 10px;
+  width: 100%;
+  position: sticky;
+  bottom: 0; /* Stick the input to the bottom */
+  z-index: 100; /* Ensure the input is always on top */
+}
