@@ -21,11 +21,22 @@ const Chatbot = ({ user }) => {
   // Scroll to the bottom when new messages arrive
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Add initial bot message when component mounts
+  useEffect(() => {
+    const initialBotMessage = {
+      text: "Hi, my name is AI Customer Support. How can I help you today?",
+      sender: 'ai',
+      timestamp: new Date().toISOString(),
+      profilePicture: 'https://via.placeholder.com/40?text=AI'
+    };
+    setMessages([initialBotMessage]);  // Set the initial greeting message
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -42,7 +53,8 @@ const Chatbot = ({ user }) => {
     setInput('');
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const API_URL = "http://localhost:8080";
+      //const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
       // Create the conversation context by combining all previous messages
       const conversationContext = messages.map((msg) => `${msg.sender}: ${msg.text}`).join('\n');
@@ -80,6 +92,13 @@ const Chatbot = ({ user }) => {
     }
   };
 
+  // Date formatting options
+  const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+
   return (
     <div className="chat-container">
       <MainContainer responsive style={{ height: '100%' }}>
@@ -88,7 +107,7 @@ const Chatbot = ({ user }) => {
             {messages.map((msg, index) => (
               <>
                 {index === 0 || new Date(messages[index].timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString() ? (
-                  <MessageSeparator content={new Date(msg.timestamp).toLocaleDateString()} />
+                  <MessageSeparator content={new Date(msg.timestamp).toLocaleDateString(undefined, options)} />
                 ) : null}
 
                 <Message
@@ -103,10 +122,10 @@ const Chatbot = ({ user }) => {
                   <Avatar
                     src={msg.profilePicture}
                     name={msg.sender === 'user' ? 'You' : 'AI'}
-                    size="40"
+                    size="md"
                   />
                   <Message.TextContent text={msg.text} />
-                  <Message.Footer className="message-footer"> {/* Add the class here */}
+                  <Message.Footer className="message-footer">
                     <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </Message.Footer>
                 </Message>

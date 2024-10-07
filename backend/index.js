@@ -1,10 +1,10 @@
 // backend/index.js
 import express, { query } from 'express';      // Express framework
 import cors from 'cors';            // CORS middleware
+import axios from 'axios';          // Axios for HTTP requests
 import OpenAI from 'openai';        // OpenAI SDK
 import { GoogleGenerativeAI } from '@google/generative-ai'; // Google Generative AI SDK
 import { MilvusClient, DataType, ConsistencyLevelEnum } from '@zilliz/milvus2-sdk-node'; // Milvus SDK
-import { pipeline } from '@xenova/transformers';  // Import Xenova pipeline
 import 'dotenv/config';             // Load environment variables from .env
 
 const app = express();
@@ -36,45 +36,27 @@ if (!address || !token) {
 
 const client = new MilvusClient({address, token})
 
-// Hugging Face pipeline to generate embeddings
-class MyEmbeddingPipeline {
-  static task = 'feature-extraction'; // Task for embeddings
-  static model = 'Xenova/all-mpnet-base-v2';  // Model used for embedding
-  static instance = null;
-
-  static async getInstance(progress_callback = null) {
-    if (this.instance === null) {
-      // Initialize the pipeline if not already created
-      this.instance = await pipeline(this.task, this.model, { progress_callback });
-    }
-    return this.instance;
-  }
-}
-
 // Function to generate embeddings for the user query
 const generateQueryEmbedding = async (userQuery) => {
   try {
-    // Get the embedding pipeline instance
-    const embeddingPipeline = await MyEmbeddingPipeline.getInstance();
+    const response = await axios.post(
+      'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-mpnet-base-v2',
+      {
+        inputs: userQuery,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    // Use the pipeline to generate embeddings
-    const embeddings = await embeddingPipeline(userQuery);
-
-    // Extract the first 768 values (the CLS token's embedding)
-    const clsEmbedding = embeddings.data.slice(0, 768);  // Assuming embeddings.data is the raw data
-
-    console.log('Generated Embedding (CLS):', clsEmbedding);
-    console.log('Embedding size:', clsEmbedding.length);
-
-    const clsEmbeddingArray = Array.from(clsEmbedding);  // Convert Float32Array to regular array
-
-    console.log('IsArray: ', Array.isArray(clsEmbeddingArray));
-
-    // Verify the length of the embedding
-    if (clsEmbeddingArray.length === 768) {
-      return clsEmbeddingArray;  // Return the correct embedding for Milvus search
+    // Ensure the embedding has the expected length
+    if (response.data.length === 768) {
+      return response.data;
     } else {
-      throw new Error(`Unexpected embedding size: ${clsEmbeddingArray.length}. Expected 768.`);
+      throw new Error(`Unexpected embedding size: ${response.data.length}. Expected 768.`);
     }
   } catch (error) {
     console.error('Error generating query embedding:', error);
