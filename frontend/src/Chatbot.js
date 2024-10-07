@@ -1,5 +1,14 @@
+// frontend/src/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
-import TextareaAutosize from 'react-textarea-autosize';
+import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';  // Import chat-ui styles
+import {
+  MainContainer,
+  ChatContainer,
+  MessageList,
+  Message,
+  MessageInput,
+  TypingIndicator
+} from '@chatscope/chat-ui-kit-react';
 
 const Chatbot = () => {
   const [input, setInput] = useState('');
@@ -45,39 +54,35 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 text-sm">
-      {/* Chat messages container */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        {messages.map((msg, index) => (
-          <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-            <div className={`max-w-xs p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : msg.sender === 'ai' ? 'bg-gray-300 text-black' : 'bg-red-500 text-white'} text-left`}>
-              <p>{msg.text}</p>
-              <span className="block text-xs text-right">{msg.timestamp}</span> {/* Add timestamp */}
-            </div>
-          </div>
-        ))}
-        <div ref={messageEndRef} />
-      </div>
-
-      {/* Input area */}
-      <div className="p-4 bg-white shadow-md">
-        <div className="flex items-center space-x-2">
-          <TextareaAutosize
+    <div className="chat-container">
+      <MainContainer responsive style={{ height: '100%' }}>
+        <ChatContainer>
+          <MessageList typingIndicator={loading ? <TypingIndicator content="AI is typing..." /> : null}>
+            {messages.map((msg, index) => (
+              <Message
+                key={index}
+                model={{
+                  message: msg.text,
+                  sentTime: msg.timestamp,
+                  sender: msg.sender === 'user' ? 'You' : 'AI',
+                  direction: msg.sender === 'user' ? 'outgoing' : 'incoming',
+                  position: 'normal'
+                }}
+              />
+            ))}
+            <div ref={messageEndRef} />
+          </MessageList>
+          <MessageInput
+            placeholder="Type your message here..."
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black text-sm"
-            rows="2"
+            onChange={(value) => setInput(value)}
+            onSend={sendMessage}
+            attachButton={false}
+            sendButton={!loading}  // Disable send button when loading
+            disabled={loading}     // Disable input when loading
           />
-          <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className={`px-4 py-2 rounded-lg text-white text-sm ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
-          >
-            {loading ? 'Sending...' : 'Send'}
-          </button>
-        </div>
-      </div>
+        </ChatContainer>
+      </MainContainer>
     </div>
   );
 };

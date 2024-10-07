@@ -1,15 +1,16 @@
-// src/App.js
+// fronted/src/App.js
 import React, { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase'; // Firebase configuration
-import './App.css';
 import Chatbot from './Chatbot';
+import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false); // Toggle between login and register
+  const [dropdownOpen, setDropdownOpen] = useState(false); // Toggle dropdown
 
   // Google sign-in
   const handleGoogleSignIn = () => {
@@ -40,16 +41,43 @@ function App() {
       .catch((error) => console.error('Error during sign-out:', error));
   };
 
+  // Toggle the dropdown when the profile picture is clicked
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="text-2xl font-bold mb-4">AI Customer Support</h1>
+        <h1>AI Customer Support</h1>
+        {user && (
+          <div className="profile-container">
+            {/* Profile Picture */}
+            <img
+              src={user.photoURL || 'https://via.placeholder.com/40'}  // Use user's profile picture or a placeholder
+              alt="Profile"
+              className="profile-pic"
+              onClick={toggleDropdown}
+            />
+
+            {/* Dropdown Menu */}
+            {dropdownOpen && (
+              <div className="dropdown">
+                <button onClick={handleSignOut} className="App-link">
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </header>
+
+      <main className="App-main">
         {!user ? (
-          <div>
+          <div className='signin-container'>
             <h2 className="text-xl mb-4">Sign In</h2>
 
-            {/* Email and Password Input */}
-            <div className="mb-4">
+            <div className="input-container mb-4">
               <input
                 type="email"
                 placeholder="Email"
@@ -66,7 +94,6 @@ function App() {
               />
             </div>
 
-            {/* Toggle between Sign In and Register */}
             <div className="flex flex-col items-center">
               {isRegistering ? (
                 <button onClick={handleEmailRegistration} className="App-link mb-4">
@@ -77,29 +104,23 @@ function App() {
                   Sign in with Email
                 </button>
               )}
-
-              {/* The text is now in a new block element below the sign-in button */}
-              <button onClick={() => setIsRegistering(!isRegistering)} className="text-sm text-blue-500 underline mb-4 block">
+              <button onClick={() => setIsRegistering(!isRegistering)} className="text-sm text-blue-500 underline mb-4">
                 {isRegistering ? 'Already have an account? Sign in' : 'Need an account? Register'}
               </button>
             </div>
 
-            {/* Google Sign-In */}
             <hr className="my-4 w-full" />
-            <button onClick={handleGoogleSignIn} className="App-link">
-              Sign in with Google
-            </button>
+            <div className="flex flex-col items-center">
+              <button onClick={handleGoogleSignIn} className="google-signin-btn light">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/240px-Google_%22G%22_logo.svg.png" alt="Google logo" />
+                Sign in with Google
+              </button>
+            </div>
           </div>
         ) : (
-          <div>
-            <h2 className="text-xl mb-4">Welcome, {user.displayName || user.email}</h2>
-            <button onClick={handleSignOut} className="App-link">
-              Sign out
-            </button>
-            <Chatbot /> {/* Chatbot component */}
-          </div>
+          <Chatbot /> // Chatbot component
         )}
-      </header>
+      </main>
     </div>
   );
 }
