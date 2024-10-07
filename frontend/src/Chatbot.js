@@ -53,8 +53,8 @@ const Chatbot = ({ user }) => {
     setInput('');
 
     try {
-      const API_URL = "http://localhost:8080";
-      //const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      //const API_URL = "http://localhost:8080";
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
       // Create the conversation context by combining all previous messages
       const conversationContext = messages.map((msg) => `${msg.sender}: ${msg.text}`).join('\n');
