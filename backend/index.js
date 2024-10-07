@@ -126,19 +126,21 @@ const retryWithBackoff = async (fn, retries = 3, delay = 1000) => {
 };
 
 // Function to call OpenAI and fallback to Gemini if needed
-const generateResponseWithOpenAI = async (userQuery, context) => {
+const generateResponseWithOpenAI = async (userQuery, context, intentions) => {
   const prompt = `
     You are a helpful banking customer support assistant.
     User asked: "${userQuery}"
-    Possible issues: "${context}"
+    Historical context: "${context}"
+    Predicted intentions: "${intentions}"
     Based on this, provide a helpful response.
   `;
   try {
     // Try calling OpenAI with retry logic
     const completion = await retryWithBackoff(() => openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: "You are a customer service agent for a bank." },
+        { role: "assistant", content: "Hello, how can I help you today?" },
         { role: "user", content: prompt },
       ],
     }));
@@ -161,7 +163,7 @@ const generateResponseWithOpenAI = async (userQuery, context) => {
 // Route to handle chat requests
 app.post('/api/chat', async (req, res) => {
   console.log('Received a request to /api/chat'); // Log when the route is hit
-  const { prompt } = req.body;
+  const { prompt, context } = req.body;
 
   try {
     // Step 1: Generate query embedding
@@ -171,8 +173,8 @@ app.post('/api/chat', async (req, res) => {
     const results = await searchMilvus(queryEmbedding);
 
     // Step 3: Generate response using retrieved context and OpenAI
-    const context = `Relevant intentions: ${results.join(', ')}`; // Placeholder context
-    const response = await generateResponseWithOpenAI(prompt, context);
+    const intentions = `Relevant intentions: ${results.join(', ')}`; // Placeholder context
+    const response = await generateResponseWithOpenAI(prompt, context, intentions);
 
     res.json({ message: response });
   } catch (error) {

@@ -35,10 +35,17 @@ const Chatbot = () => {
 
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
+      // Create the conversation context by combining all previous messages
+      const conversationContext = messages.map((msg) => `${msg.sender}: ${msg.text}`).join('\n');
+
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: input }),
+        body: JSON.stringify({
+          prompt: input,
+          context: conversationContext
+        }),
       });
 
       const data = await response.json();
