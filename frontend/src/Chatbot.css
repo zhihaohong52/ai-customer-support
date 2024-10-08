@@ -46,3 +46,33 @@
   bottom: 0; /* Stick the input to the bottom */
   z-index: 100; /* Ensure the input is always on top */
 }
+
+.conversation-title {
+  white-space: nowrap;        /* Prevents text from wrapping */
+  overflow: hidden;           /* Ensures the overflow is hidden */
+  text-overflow: ellipsis;    /* Displays ellipsis (…) for overflowing text */
+  max-width: 80%;             /* Adjust the width based on available space (e.g., 80%) */
+  display: inline-block;      /* Ensures proper layout of the text with the ellipsis */
+}
+
+
+.new-chat-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #4285f4;
+  border-radius: 5px;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 80%;
+  max-width: 320px;
+  margin: 10px auto;
+  background-color: #fff;
+  color: #000;
+}
+
+.new-chat-button:hover {
+  background-color: #f1f1f1;
+}
