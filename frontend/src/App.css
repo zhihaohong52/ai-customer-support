@@ -106,15 +106,6 @@ body {
   z-index: 999;
 }
 
-.dropdown button {
-  background: none;
-  border: none;
-  color: black;
-  padding: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
 /* Sign-in buttons */
 .google-signin-btn, .App-link {
   display: flex;
@@ -152,6 +143,12 @@ body {
   border-radius: 5px;
 }
 
+@media (max-width: 768px) {
+  .header-title {
+    font-size: 20px; /* Decrease font size for smaller screens */
+  }
+}
+
 /* Media query for screens below 600px */
 @media (max-width: 600px) {
   .welcome-text {
@@ -160,5 +157,9 @@ body {
 
   .profile-container {
     justify-content: flex-end; /* Ensure profile picture stays aligned on the right */
+  }
+
+  .header-title {
+    font-size: 18px; /* Decrease font size for smaller screens */
   }
 }

@@ -1,25 +1,26 @@
 /* frontend/src/Chatbot.css */
+
 /* Chat container */
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px) !important; /* Force the height to subtract the header height */
+  height: calc(100vh - 60px) !important; /* Adjust for header height */
   flex-grow: 1;
   overflow: hidden;
 }
 
-.sidebar{
-  width: 300px;
+/* Sidebar styling */
+.sidebar {
+  width: 250px;
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
   height: 100%;
-  box-shadow: #e0e0e0;
 }
 
 /* Ensure that the message list scrolls independently */
 .MainContainer {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-grow: 1;
   height: 100%; /* Ensure it takes up all available space */
 }
@@ -30,13 +31,16 @@
   padding: 10px;
 }
 
+/* ChatContainer styling */
 .ChatContainer {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px); /* Subtract the header height */
+  height: calc(100vh - 120px); /* Adjust for header and input */
   padding: 10px;
+  flex-grow: 1;
 }
 
+/* MessageInput styling */
 .MessageInput {
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
   background-color: #fff;
@@ -47,15 +51,36 @@
   z-index: 100; /* Ensure the input is always on top */
 }
 
-.conversation-title {
-  white-space: nowrap;        /* Prevents text from wrapping */
-  overflow: hidden;           /* Ensures the overflow is hidden */
-  text-overflow: ellipsis;    /* Displays ellipsis (…) for overflowing text */
-  max-width: 80%;             /* Adjust the width based on available space (e.g., 80%) */
-  display: inline-block;      /* Ensures proper layout of the text with the ellipsis */
+/* Date header in sidebar */
+.date-header {
+  text-align: center;
+  color: gray;
+  margin: 10px 0;
 }
 
+.selected-chat {
+  background-color: #e0e0e0; /* Light gray background */
+  border-radius: 5px;
+}
 
+/* Conversation title styling */
+.conversation-title {
+  color: gray;
+  margin-left: 10px;
+  border-radius: 5px;
+  white-space: nowrap;        /* Prevent text wrapping */
+  overflow: hidden;           /* Hide overflow */
+  text-overflow: ellipsis;    /* Display ellipsis for overflow */
+  max-width: 80%;             /* Adjust width */
+  display: flex;
+  flex-grow: 1;
+}
+
+.conversation-title:hover {
+  background-color: #f0f0f0;
+}
+
+/* New chat button styling */
 .new-chat-button {
   display: flex;
   align-items: center;
@@ -75,4 +100,42 @@
 
 .new-chat-button:hover {
   background-color: #f1f1f1;
+}
+
+/* Media query for screens below 768px */
+@media (max-width: 768px) {
+  /* Adjust ChatContainer to take full width */
+  .MainContainer {
+    flex-direction: column;
+  }
+
+  .MainContainer .cs-chat-container {
+    width: 100% !important;
+  }
+
+  /* Hide the Sidebar component (since we're using Drawer on mobile) */
+  .sidebar {
+    display: none;
+  }
+
+  /* Adjust ChatContainer height */
+  .ChatContainer {
+    height: calc(100vh - 60px); /* Adjust as needed */
+  }
+}
+
+/* Ensure the toggle button is on top */
+.MuiIconButton-root {
+  z-index: 10000;
+}
+
+/* Additional styles for messages */
+.message-footer {
+  font-size: 12px;
+  color: gray;
+  margin-top: 5px;
+}
+
+.MuiDrawer-paper {
+  width: 250px;
 }

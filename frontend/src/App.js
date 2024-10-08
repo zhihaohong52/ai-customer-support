@@ -106,7 +106,7 @@ function App() {
                 </button>
               ) : (
                 <button onClick={handleEmailSignIn} className="App-link mb-4">
-                  Sign in with Email
+                  Sign in
                 </button>
               )}
               <button onClick={() => setIsRegistering(!isRegistering)} className="text-sm text-blue-500 underline mb-4">
