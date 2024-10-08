@@ -1,3 +1,4 @@
+/* frontend/src/App.css */
 /* Resetting the default margins and paddings for full control */
 html, body, #root {
   height: 100%;
@@ -29,11 +30,12 @@ body {
   height: 60px; /* Fixed height */
 }
 
+/* Main section styling, takes the remaining height after the header */
 .App-main {
   display: flex;
-  flex-grow: 1;
-  justify-items: center;
-  align-items: center;
+  flex-grow: 1; /* Ensure the main section grows to fill the remaining space */
+  height: calc(100vh - 60px); /* Subtract the header height */
+  background-color: #f5f5f5;
 }
 
 .signin-container {
@@ -159,32 +161,4 @@ body {
   .profile-container {
     justify-content: flex-end; /* Ensure profile picture stays aligned on the right */
   }
-}
-
-/* Chat container */
-.chat-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 60px); /* Subtract header height */
-  background-color: #f5f5f5;
-}
-
-.MainContainer .cs-chat__list {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.MessageInput {
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-  padding: 10px;
-}
-
-.message-footer {
-  display: flex;
-  justify-content: flex-end; /* Right-align the content */
-  font-size: 12px; /* Optional: Adjust the font size of the timestamp */
-  color: #999; /* Optional: Lighten the timestamp color */
 }
