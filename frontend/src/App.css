@@ -78,7 +78,7 @@ body {
 .welcome-text {
   color: white;
   margin-right: 10px; /* Add spacing between the welcome text and profile picture */
-  font-size: 14px;
+  font-size: medium;
   text-align: right;
   word-wrap: break-word; /* Ensures text wraps */
   overflow: hidden;
@@ -104,15 +104,6 @@ body {
   border-radius: 5px;
   padding: 10px;
   z-index: 999;
-}
-
-.dropdown button {
-  background: none;
-  border: none;
-  color: black;
-  padding: 8px;
-  cursor: pointer;
-  font-size: 14px;
 }
 
 /* Sign-in buttons */
@@ -152,13 +143,23 @@ body {
   border-radius: 5px;
 }
 
-/* Media query for screens below 600px */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .header-title {
+    font-size: 20px; /* Decrease font size for smaller screens */
+  }
+}
+
+/* Media query for screens below 768px */
+@media (max-width: 768px) {
   .welcome-text {
     display: none; /* Hide welcome text on smaller screens */
   }
 
   .profile-container {
     justify-content: flex-end; /* Ensure profile picture stays aligned on the right */
+  }
+
+  .header-title {
+    font-size: 18px; /* Decrease font size for smaller screens */
   }
 }

@@ -58,7 +58,7 @@ function App() {
 
               {/* Profile Picture */}
               <img
-                src={user.photoURL || 'https://via.placeholder.com/40'}  // Use user's profile picture or a placeholder
+                src={user.photoURL || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}  // Use user's profile picture or a placeholder
                 alt="Profile"
                 className="profile-pic"
                 onClick={toggleDropdown}
@@ -106,7 +106,7 @@ function App() {
                 </button>
               ) : (
                 <button onClick={handleEmailSignIn} className="App-link mb-4">
-                  Sign in with Email
+                  Sign in
                 </button>
               )}
               <button onClick={() => setIsRegistering(!isRegistering)} className="text-sm text-blue-500 underline mb-4">

@@ -1,3 +1,4 @@
+// frontend/src/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';  // Import chat-ui styles
 import {
@@ -20,6 +21,7 @@ import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } fr
 import MenuIcon from '@mui/icons-material/Menu';  // For toggle button
 import DeleteIcon from '@mui/icons-material/Delete';  // For delete button
 import IconButton from '@mui/material/IconButton'; // For clickable icons
+import Drawer from '@mui/material/Drawer';
 
 import { format, isToday, isYesterday } from 'date-fns'; // Import date formatting functions
 import './Chatbot.css';
@@ -31,7 +33,24 @@ const Chatbot = ({ user }) => {
   const [chats, setChats] = useState([]); // Chat history
   const [selectedChatId, setSelectedChatId] = useState(null); // Currently selected chat
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768); // Sidebar visibility
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const messageEndRef = useRef(null);
+
+  // Handle screen resizing
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth > 768) {
+        setDrawerOpen(false);
+        setShowSidebar(true);
+      } else {
+        setShowSidebar(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Firestore collection reference for the user
   const chatCollectionRef = collection(firestore, `users/${user.uid}/chats`);
@@ -63,6 +82,9 @@ const Chatbot = ({ user }) => {
       if (chatList.length > 0) {
         setSelectedChatId(chatList[0].id);
         setMessages(chatList[0].messages || []);
+      } else {
+        // Start a new chat if no chats exist
+        await startNewChat();
       }
     };
     fetchChats();
@@ -88,7 +110,7 @@ const Chatbot = ({ user }) => {
         text: "Hi, my name is AI Customer Support. How can I help you today?",
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=AI'
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
       };
       setMessages([initialBotMessage]);
     }
@@ -144,7 +166,7 @@ const startNewChat = async () => {
       text: input,
       sender: 'user',
       timestamp: new Date().toISOString(), // Make sure it's saved as ISO string
-      profilePicture: user.photoURL || 'https://via.placeholder.com/40', // Use user profile picture or a placeholder
+      profilePicture: user.photoURL || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png', // Use user profile picture or a placeholder
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -175,7 +197,7 @@ const startNewChat = async () => {
         text: message,
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=AI', // Placeholder for AI profile picture
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
       };
 
       // Update Firestore with the new messages
@@ -193,6 +215,7 @@ const startNewChat = async () => {
         const chatSnapshot = await getDocs(chatCollectionRef);
         const chatList = chatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setChats(chatList);
+        renderSidebarContent();
       }
 
     } catch (error) {
@@ -201,7 +224,7 @@ const startNewChat = async () => {
         text: 'Error connecting to the AI service. Please try again later.',
         sender: 'error',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=Err',
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png',
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -211,10 +234,54 @@ const startNewChat = async () => {
     }
   };
 
-  // Toggle sidebar visibility
   const toggleSidebar = () => {
-    setShowSidebar(!showSidebar);
+    if (isMobile) {
+      setDrawerOpen(!drawerOpen);
+    } else {
+      setShowSidebar(!showSidebar);
+    }
   };
+
+  const renderSidebarContent = () => (
+    <ConversationList>
+      <button onClick={startNewChat} className="new-chat-button">New Chat</button>
+      <h2 style={{ fontSize: '1.2rem', margin: '10px 0', textAlign: 'center' }}>Chat History</h2>
+      {/* Group chats by date */}
+      {Object.entries(
+        chats.reduce((acc, chat) => {
+          const date = formatDate(chat.updatedAt || chat.createdAt.seconds * 1000);
+          if (!acc[date]) {
+            acc[date] = [];
+          }
+          acc[date].push(chat);
+          return acc;
+        }, {})
+      ).map(([date, chatGroup]) => (
+        <React.Fragment key={date}>
+          <div className="date-header">{date}</div>
+          {chatGroup.map((chat) => (
+            <div key={chat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Conversation
+                className={`conversation-title ${
+                  selectedChatId === chat.id ? 'selected-chat' : ''
+                }`}
+                name={chat.title || 'New Chat'}
+                onClick={() => {
+                  setSelectedChatId(chat.id);
+                  if (isMobile) {
+                    setDrawerOpen(false); // Close drawer on mobile
+                  }
+                }}
+              />
+              <IconButton onClick={() => deleteChat(chat.id)} aria-label="delete chat" color="grey">
+                <DeleteIcon />
+              </IconButton>
+            </div>
+          ))}
+        </React.Fragment>
+      ))}
+    </ConversationList>
+  );
 
   // Date formatting options
   const options = {
@@ -236,46 +303,11 @@ const startNewChat = async () => {
 
   return (
     <div className="chat-container" style={{ display: 'flex', height: '100vh' }}>
-      {/* Sidebar rendered conditionally */}
       <MainContainer responsive style={{ height: '100%', flex: 1 }}>
-        {showSidebar && (
+        {!isMobile && showSidebar && (
           <Sidebar className="sidebar" position="left" scrollable style={{ width: '250px' }}>
-            <ConversationList>
-              <button onClick={startNewChat} className="new-chat-button">New Chat</button>
-
-              {/* Group chats by date */}
-              {Object.entries(
-                chats.reduce((acc, chat) => {
-                  const date = formatDate(chat.updatedAt || chat.createdAt.seconds * 1000);
-
-                  // If the date group does not exist, create it as an array
-                  if (!acc[date]) {
-                    acc[date] = [];
-                  }
-
-                  // Push the chat into the correct date group
-                  acc[date].push(chat);
-
-                  return acc;
-                }, {})
-              ).map(([date, chatGroup]) => (
-                <React.Fragment key={date}>
-                  <div className="date-header">{date}</div>
-                  {chatGroup.map((chat) => (
-                    <div key={chat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Conversation className="conversation-title"
-                        name={chat.title || 'New Chat'} // Display title or "New Chat"
-                        onClick={() => setSelectedChatId(chat.id)}
-                      />
-                      <IconButton onClick={() => deleteChat(chat.id)} aria-label="delete chat" color="secondary">
-                        <DeleteIcon />
-                      </IconButton>
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))}
-          </ConversationList>
-        </Sidebar>
+            {renderSidebarContent()}
+          </Sidebar>
         )}
         <ChatContainer>
           <MessageList typingIndicator={loading ? <TypingIndicator content="AI is typing..." /> : null}>
@@ -319,17 +351,27 @@ const startNewChat = async () => {
           />
         </ChatContainer>
       </MainContainer>
+
+      {/* Drawer for mobile */}
+      {isMobile && (
+        <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+          <div style={{ width: '250px' }}>
+            {renderSidebarContent()}
+          </div>
+        </Drawer>
+      )}
+
       {/* Toggle Sidebar Button */}
       <IconButton
         onClick={toggleSidebar}
         aria-label="toggle sidebar"
         style={{
-          position: 'absolute',  // Remain absolute to not interfere with other elements
+          position: 'absolute',
           color: 'white',
-          top: '30px',     // Position it vertically at 30px from the top
-          left: '15px',  // Position it horizontally at 30px from the left
+          top: '30px',
+          left: '15px',
           transform: 'translateY(-50%)',  // Adjust to vertically center it
-          zIndex: 999,  // Ensure it's on top
+          zIndex: 10000,
         }}
       >
         <MenuIcon />
