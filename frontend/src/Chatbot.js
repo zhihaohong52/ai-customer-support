@@ -110,7 +110,7 @@ const Chatbot = ({ user }) => {
         text: "Hi, my name is AI Customer Support. How can I help you today?",
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=AI'
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
       };
       setMessages([initialBotMessage]);
     }
@@ -166,7 +166,7 @@ const startNewChat = async () => {
       text: input,
       sender: 'user',
       timestamp: new Date().toISOString(), // Make sure it's saved as ISO string
-      profilePicture: user.photoURL || 'https://via.placeholder.com/40', // Use user profile picture or a placeholder
+      profilePicture: user.photoURL || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png', // Use user profile picture or a placeholder
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -197,7 +197,7 @@ const startNewChat = async () => {
         text: message,
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=AI', // Placeholder for AI profile picture
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
       };
 
       // Update Firestore with the new messages
@@ -215,6 +215,7 @@ const startNewChat = async () => {
         const chatSnapshot = await getDocs(chatCollectionRef);
         const chatList = chatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setChats(chatList);
+        renderSidebarContent();
       }
 
     } catch (error) {
@@ -223,7 +224,7 @@ const startNewChat = async () => {
         text: 'Error connecting to the AI service. Please try again later.',
         sender: 'error',
         timestamp: new Date().toISOString(),
-        profilePicture: 'https://via.placeholder.com/40?text=Err',
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png',
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -261,14 +262,14 @@ const startNewChat = async () => {
           {chatGroup.map((chat) => (
             <div key={chat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Conversation
-                className="conversation-title"
+                className={`conversation-title ${
+                  selectedChatId === chat.id ? 'selected-chat' : ''
+                }`}
                 name={chat.title || 'New Chat'}
                 onClick={() => {
                   setSelectedChatId(chat.id);
                   if (isMobile) {
                     setDrawerOpen(false); // Close drawer on mobile
-                  } else {
-                    setShowSidebar(false); // Optionally close sidebar on desktop
                   }
                 }}
               />
