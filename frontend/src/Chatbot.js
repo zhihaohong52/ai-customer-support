@@ -1,32 +1,38 @@
 // frontend/src/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
-import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';  // Import chat-ui styles
 import {
-  MainContainer,
-  ChatContainer,
-  MessageList,
-  Message,
-  MessageSeparator,
-  MessageInput,
-  TypingIndicator,
+  Box,
+  Typography,
+  IconButton,
+  Drawer,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
   Avatar,
-  Sidebar,
-  ConversationList,
-  Conversation,
-} from '@chatscope/chat-ui-kit-react';
+  TextField,
+  Grid,
+  Divider,
+  CircularProgress,
+  Stack,
+} from '@mui/material';
+import { Menu as MenuIcon, Delete as DeleteIcon, Send as SendIcon } from '@mui/icons-material';
 import { firestore } from './firebase'; // Firestore integration
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-
-/* Import Material UI Icons */
-import MenuIcon from '@mui/icons-material/Menu';  // For toggle button
-import DeleteIcon from '@mui/icons-material/Delete';  // For delete button
-import IconButton from '@mui/material/IconButton'; // For clickable icons
-import Drawer from '@mui/material/Drawer';
-
-import { format, isToday, isYesterday } from 'date-fns'; // Import date formatting functions
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+} from 'firebase/firestore';
+import { format, isToday, isYesterday } from 'date-fns';
 import './Chatbot.css';
 
 const Chatbot = ({ user }) => {
+  // State variables
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,6 +41,15 @@ const Chatbot = ({ user }) => {
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768); // Sidebar visibility
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [suggestedPrompts, setSuggestedPrompts] = useState([
+    'How can I open a new account?',
+    'Tell me about your loan options.',
+    'How do I report a lost card?',
+    'What are your hours of operation?',
+    'How can I contact customer support?',
+  ]);
+  const [isFetchingPrompts, setIsFetchingPrompts] = useState(false);
+  const [isTyping, setIsTyping] = useState(false); // State for typing indicator
   const messageEndRef = useRef(null);
 
   // Handle screen resizing
@@ -55,20 +70,23 @@ const Chatbot = ({ user }) => {
   // Firestore collection reference for the user
   const chatCollectionRef = collection(firestore, `users/${user.uid}/chats`);
 
-  // Scroll to the bottom when new messages arrive
+  // Scroll to the bottom when new messages arrive or typing indicator changes
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isTyping, suggestedPrompts]);
 
   // Load chat history when component mounts
   useEffect(() => {
     const fetchChats = async () => {
       const chatSnapshot = await getDocs(chatCollectionRef);
-      const chatList = chatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const chatList = chatSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       // Sort by updatedAt in descending order (most recent first)
       const sortedChats = chatList.sort((a, b) => {
         const dateA = new Date(a.updatedAt || a.createdAt.seconds * 1000);
@@ -107,34 +125,44 @@ const Chatbot = ({ user }) => {
   useEffect(() => {
     if (messages.length === 0) {
       const initialBotMessage = {
-        text: "Hi, my name is AI Customer Support. How can I help you today?",
+        text: 'Hi, my name is AI Customer Support. How can I help you today?',
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png',
       };
       setMessages([initialBotMessage]);
     }
   }, [messages]);
 
-  // Start a new chat and update the chat history
-const startNewChat = async () => {
-  try {
-    const newChatRef = await addDoc(chatCollectionRef, {
-      createdAt: new Date(),
-      title: 'New Chat', // Initial placeholder title
-      messages: [],
-    });
+  // Watch for changes and fetch suggested prompts when messages change
+  useEffect(() => {
+    if (!isTyping) {
+      fetchSuggestedPrompts();
+    }
+  }, [messages]);
 
-    // Fetch the updated chat list after creating the new chat
-    const chatSnapshot = await getDocs(chatCollectionRef);
-    const chatList = chatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setChats(chatList); // Update the chat history
-    setSelectedChatId(newChatRef.id); // Set the new chat as the selected chat
-    setMessages([]); // Clear messages for the new chat
-  } catch (error) {
-    console.error('Error creating a new chat:', error);
-  }
-};
+  // Start a new chat and update the chat history
+  const startNewChat = async () => {
+    try {
+      const newChatRef = await addDoc(chatCollectionRef, {
+        createdAt: new Date(),
+        title: 'New Chat', // Initial placeholder title
+        messages: [],
+      });
+
+      // Fetch the updated chat list after creating the new chat
+      const chatSnapshot = await getDocs(chatCollectionRef);
+      const chatList = chatSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setChats(chatList); // Update the chat history
+      setSelectedChatId(newChatRef.id); // Set the new chat as the selected chat
+      setMessages([]); // Clear messages for the new chat
+    } catch (error) {
+      console.error('Error creating a new chat:', error);
+    }
+  };
 
   // Delete a chat
   const deleteChat = async (chatId) => {
@@ -143,7 +171,7 @@ const startNewChat = async () => {
       await deleteDoc(doc(firestore, `users/${user.uid}/chats/${chatId}`));
 
       // Update the chat list by removing the deleted chat
-      setChats((prevChats) => prevChats.filter(chat => chat.id !== chatId));
+      setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
 
       // If the deleted chat is the currently selected chat, start a new chat
       if (chatId === selectedChatId) {
@@ -158,66 +186,77 @@ const startNewChat = async () => {
     }
   };
 
-  // Send a message and get AI response + possibly generate title
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  // Send a message and get AI response
+  const sendMessage = async (messageText) => {
+    const message = messageText || input;
+    if (!message.trim()) return;
 
     const userMessage = {
-      text: input,
+      text: message,
       sender: 'user',
-      timestamp: new Date().toISOString(), // Make sure it's saved as ISO string
-      profilePicture: user.photoURL || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png', // Use user profile picture or a placeholder
+      timestamp: new Date().toISOString(),
+      profilePicture:
+        user.photoURL ||
+        'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png',
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
+    setIsTyping(true); // Start typing indicator
+    setSuggestedPrompts([]); // Hide suggested prompts
     setInput('');
 
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-      // Create the conversation context by combining all previous messages
-      const conversationContext = messages.map((msg) => `${msg.sender}: ${msg.text}`).join('\n');
+      // Create the conversation context
+      const conversationContext = messages
+        .map((msg) => `${msg.sender}: ${msg.text}`)
+        .join('\n');
 
-      // Determine if the title should be generated (only for the first message)
+      // Determine if the title should be generated
       const shouldGenerateTitle = messages.length === 1;
 
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: input,
+          prompt: message,
           context: conversationContext,
-          generateTitle: shouldGenerateTitle, // Tell the backend if title generation is needed
+          generateTitle: shouldGenerateTitle,
         }),
       });
 
-      const { message, title } = await response.json();
+      const { message: aiResponse, title } = await response.json();
       const aiMessage = {
-        text: message,
+        text: aiResponse,
         sender: 'ai',
         timestamp: new Date().toISOString(),
-        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png'
+        profilePicture: 'pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png',
       };
 
       // Update Firestore with the new messages
       const chatDocRef = doc(firestore, `users/${user.uid}/chats/${selectedChatId}`);
       await updateDoc(chatDocRef, {
         messages: [...messages, userMessage, aiMessage],
-        updatedAt: new Date().toISOString(), // Update the conversation's last updated time
+        updatedAt: new Date().toISOString(),
       });
 
       if (shouldGenerateTitle && title) {
-        const cleanTitle = title.replace(/^"(.*)"$/, '$1'); // Remove surrounding quotes
+        const cleanTitle = title.replace(/^"(.*)"$/, '$1');
         await updateDoc(chatDocRef, { title: cleanTitle });
 
         // Refresh chat history to reflect the updated title
         const chatSnapshot = await getDocs(chatCollectionRef);
-        const chatList = chatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const chatList = chatSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setChats(chatList);
-        renderSidebarContent();
+        // No need to call renderSidebarContent here as the sidebar updates automatically
       }
 
+      setIsTyping(false); // Stop typing indicator
     } catch (error) {
       console.error('Error fetching AI response:', error);
       const errorMessage = {
@@ -228,9 +267,48 @@ const startNewChat = async () => {
       };
 
       setMessages((prev) => [...prev, errorMessage]);
-      setLoading(false); // Ensure loading is set to false even on error
+      setIsTyping(false); // Ensure typing indicator stops on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to fetch suggested prompts
+  const fetchSuggestedPrompts = async () => {
+    console.log('Fetching suggested prompts...');
+    setIsFetchingPrompts(true); // Start loading
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
+      // Create the conversation context
+      const conversationContext = messages
+        .map((msg) => `${msg.sender}: ${msg.text}`)
+        .join('\n');
+
+      const response = await fetch(`${API_URL}/api/suggested-prompts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: conversationContext,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Process the prompts
+      const processedPrompts = data.prompts.map((prompt) => {
+        prompt = prompt.replace(/^\d+\.\s*/, '');
+        prompt = prompt.replace(/^"(.*)"$/, '$1');
+        return prompt;
+      });
+
+      console.log('Suggested Prompts:', processedPrompts);
+      setSuggestedPrompts(processedPrompts);
+    } catch (error) {
+      console.error('Error fetching suggested prompts:', error);
+      setSuggestedPrompts([]); // Clear prompts on error
+    } finally {
+      setIsFetchingPrompts(false); // End loading
     }
   };
 
@@ -243,10 +321,20 @@ const startNewChat = async () => {
   };
 
   const renderSidebarContent = () => (
-    <ConversationList>
-      <button onClick={startNewChat} className="new-chat-button">New Chat</button>
-      <h2 style={{ fontSize: '1.2rem', margin: '10px 0', textAlign: 'center' }}>Chat History</h2>
-      {/* Group chats by date */}
+    <Box>
+      <Button
+        onClick={startNewChat}
+        variant="contained"
+        color="primary"
+        sx={{ margin: 1, width: 'calc(100% - 16px)', textTransform: 'none', fontSize: '1.2rem' }}
+      >
+        New Chat
+      </Button>
+      <Typography variant="h6" align="center" sx={{ marginY: 2, fontSize: '1rem' }}>
+        Chat History
+      </Typography>
+      <Divider />
+
       {Object.entries(
         chats.reduce((acc, chat) => {
           const date = formatDate(chat.updatedAt || chat.createdAt.seconds * 1000);
@@ -258,29 +346,57 @@ const startNewChat = async () => {
         }, {})
       ).map(([date, chatGroup]) => (
         <React.Fragment key={date}>
-          <div className="date-header">{date}</div>
-          {chatGroup.map((chat) => (
-            <div key={chat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Conversation
-                className={`conversation-title ${
-                  selectedChatId === chat.id ? 'selected-chat' : ''
-                }`}
-                name={chat.title || 'New Chat'}
-                onClick={() => {
-                  setSelectedChatId(chat.id);
-                  if (isMobile) {
-                    setDrawerOpen(false); // Close drawer on mobile
-                  }
+          <Typography variant="subtitle2" align="center" sx={{ marginY: 1 }}>
+            {date}
+          </Typography>
+          <List>
+            {chatGroup.map((chat) => (
+              <ListItem
+                key={chat.id}
+                secondaryAction={
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering the ListItemButton click
+                      deleteChat(chat.id);
+                    }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                }
+                disablePadding
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'rgba(63, 81, 181, 0.05)', // Light hover effect
+                  },
                 }}
-              />
-              <IconButton onClick={() => deleteChat(chat.id)} aria-label="delete chat" color="grey">
-                <DeleteIcon />
-              </IconButton>
-            </div>
-          ))}
+              >
+                <ListItemButton
+                  selected={selectedChatId === chat.id}
+                  onClick={() => {
+                    setSelectedChatId(chat.id);
+                    if (isMobile) {
+                      setDrawerOpen(false);
+                    }
+                  }}
+                  sx={{
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(63, 81, 181, 0.1)', // Light blue background for selected
+                      '&:hover': {
+                        backgroundColor: 'rgba(63, 81, 181, 0.15)', // Darker on hover
+                      },
+                    },
+                  }}
+                >
+                  <ListItemText primary={chat.title || 'New Chat'} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
         </React.Fragment>
       ))}
-    </ConversationList>
+    </Box>
   );
 
   // Date formatting options
@@ -297,86 +413,187 @@ const startNewChat = async () => {
     } else if (isYesterday(dateObj)) {
       return 'Yesterday';
     } else {
-      return format(dateObj, 'MMMM d, yyyy'); // e.g., "October 8, 2024"
+      return format(dateObj, 'MMMM d, yyyy');
     }
   };
 
   return (
-    <div className="chat-container" style={{ display: 'flex', height: '100vh' }}>
-      <MainContainer responsive style={{ height: '100%', flex: 1 }}>
-        {!isMobile && showSidebar && (
-          <Sidebar className="sidebar" position="left" scrollable style={{ width: '250px' }}>
-            {renderSidebarContent()}
-          </Sidebar>
-        )}
-        <ChatContainer>
-          <MessageList typingIndicator={loading ? <TypingIndicator content="AI is typing..." /> : null}>
-            {messages.map((msg, index) => (
-              <>
-                {index === 0 || new Date(messages[index].timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString() ? (
-                  <MessageSeparator content={new Date(msg.timestamp).toLocaleDateString(undefined, options)} />
-                ) : null}
+    <Box className="chat-container" sx={{ display: 'flex', flex: 1, position: 'relative' }}>
+      {/* Sidebar */}
+      {!isMobile && showSidebar && (
+        <Box className="sidebar" sx={{ width: 250, borderRight: '1px solid #e0e0e0' }}>
+          {renderSidebarContent()}
+        </Box>
+      )}
 
-                <Message
-                  key={index}
-                  model={{
-                    direction: msg.sender === 'user' ? 'outgoing' : 'incoming',
-                    position: 'normal',
-                    sender: msg.sender,
+      {/* Chat Content */}
+      <Box className="chat-content" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Messages */}
+        <Box className="message-list" sx={{ flex: 1, overflowY: 'auto', padding: 2, backgroundColor: '#f0f0f0' }}>
+          {messages.map((msg, index) => (
+            <Box key={index} sx={{ marginBottom: 3 }}> {/* Increased margin */}
+              {/* Date Separator */}
+              {(index === 0 ||
+                new Date(messages[index].timestamp).toDateString() !==
+                  new Date(messages[index - 1].timestamp).toDateString()) && (
+                <Typography variant="caption" align="center" sx={{ display: 'block', margin: 1 }}>
+                  {new Date(msg.timestamp).toLocaleDateString(undefined, options)}
+                </Typography>
+              )}
+
+              {/* Message */}
+              <Stack
+                direction="row"
+                spacing={1}
+                justifyContent={msg.sender === 'user' ? 'flex-end' : 'flex-start'}
+                alignItems="flex-start"
+                sx={{ marginBottom: 2 }}
+              >
+                {msg.sender !== 'user' && (
+                  <Avatar src={msg.profilePicture} alt={msg.sender} className="message-avatar" />
+                )}
+                <Box
+                  className="message-paper"
+                  sx={{
+                    backgroundColor: msg.sender === 'user' ? '#DCF8C6' : '#FFFFFF', // User: Light Green, AI: White
+                    borderRadius: 2,
+                    padding: 1,
+                    maxWidth: '60%',
+                    boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
+                    borderTopLeftRadius: msg.sender === 'user' ? '16px' : '0px',
+                    borderTopRightRadius: msg.sender === 'user' ? '0px' : '16px',
                   }}
-                  avatarPosition={msg.sender === 'user' ? 'trailing' : 'leading'}
                 >
-                  <Avatar
-                    src={msg.profilePicture}
-                    name={msg.sender === 'user' ? 'You' : 'AI'}
-                    size="md"
-                  />
-                  <Message.TextContent text={msg.text} />
-                  <Message.Footer className="message-footer">
-                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </Message.Footer>
-                </Message>
-              </>
-            ))}
-            <div ref={messageEndRef} />
-          </MessageList>
-          <MessageInput
-            placeholder="Type your message here..."
-            value={input}
-            onChange={(value) => setInput(value)}
-            onSend={sendMessage}
-            attachButton={false}
-            sendButton={!loading}  // Disable send button when loading
-            disabled={loading}     // Disable input when loading
-          />
-        </ChatContainer>
-      </MainContainer>
+                  <Typography variant="body1">{msg.text}</Typography>
+                  {/* Timestamp */}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                    <Typography variant="caption" color="textSecondary">
+                      {new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Typography>
+                  </Box>
+                </Box>
+                {msg.sender === 'user' && (
+                  <Avatar src={msg.profilePicture} alt="You" className="message-avatar" />
+                )}
+              </Stack>
+            </Box>
+          ))}
 
-      {/* Drawer for mobile */}
+          {/* Typing Indicator */}
+          {isTyping && (
+            <Box
+              className="typing-indicator"
+              aria-live="polite" // Announces dynamic content changes
+              aria-atomic="true"
+              sx={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}
+            >
+              <Avatar src="pictures/he_caf28749-8dd9-4704-ab42-e076ff1d8f90.png" alt="AI" />
+              <Typography variant="body2" color="textSecondary" sx={{ marginLeft: 1 }}>
+                AI is typing...
+              </Typography>
+              <Box className="typing-dots" sx={{ marginLeft: 1 }}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </Box>
+            </Box>
+          )}
+
+          {/* Suggested Prompts */}
+          {isFetchingPrompts ? (
+            <Box sx={{ padding: 2, backgroundColor: '#e0e0e0', borderRadius: 2, marginTop: 2 }}>
+              <Typography variant="subtitle1">Attempting to fetch suggested prompts...</Typography>
+            </Box>
+          ) : (
+            !isTyping && suggestedPrompts.length > 0 && (
+              <Box sx={{ padding: 2, backgroundColor: '#e0e0e0', borderRadius: 2, marginTop: 2 }}>
+                <Typography variant="subtitle1">Suggested Prompts:</Typography>
+                <Grid container spacing={1}>
+                  {suggestedPrompts.map((prompt, index) => (
+                    <Grid item key={index}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => sendMessage(prompt)}
+                        sx={{ textTransform: 'none' }} // Ensures normal sentence case
+                      >
+                        {prompt}
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )
+          )}
+
+          {/* Reference for scrolling */}
+          <div ref={messageEndRef} />
+        </Box>
+
+        {/* Message Input */}
+        <Box className="message-input" sx={{ padding: 0.5, borderTop: '1px solid #ddd', backgroundColor: '#fff', flexShrink: 0 }}>
+          <Grid container spacing={1} alignItems="center">
+            <Grid item xs>
+              <TextField
+                fullWidth
+                placeholder="Type your message here..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') sendMessage();
+                }}
+                disabled={loading}
+              />
+            </Grid>
+            <Grid item>
+              <IconButton color="primary" onClick={() => sendMessage()} disabled={loading}>
+                {loading ? <CircularProgress size={24} /> : <SendIcon />}
+              </IconButton>
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
+
+      {/* Drawer for Mobile */}
       {isMobile && (
-        <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          <div style={{ width: '250px' }}>
-            {renderSidebarContent()}
-          </div>
-        </Drawer>
+        <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            top: '60px', // Header height
+            height: 'calc(100% - 60px)', // Adjusted height
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <Box sx={{ width: 250 }}>
+          {renderSidebarContent()}
+        </Box>
+      </Drawer>
       )}
 
       {/* Toggle Sidebar Button */}
       <IconButton
         onClick={toggleSidebar}
         aria-label="toggle sidebar"
-        style={{
-          position: 'absolute',
-          color: 'white',
-          top: '30px',
-          left: '15px',
-          transform: 'translateY(-50%)',  // Adjust to vertically center it
+        sx={{
+          position: 'fixed', // Ensures it's always visible
+          color: 'white', // Adjust based on your design
+          top: 10,
+          left: 10,
           zIndex: 10000,
         }}
       >
         <MenuIcon />
       </IconButton>
-    </div>
+    </Box>
   );
 };
 
