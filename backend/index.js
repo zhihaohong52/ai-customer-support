@@ -143,7 +143,7 @@ const generateResponseWithOpenAI = async (userQuery, context, intentions, genera
   `;
   try {
     const completion = await retryWithBackoff(() => openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are a customer service agent for a bank." },
         { role: "assistant", content: "Hello, how can I help you today?" },
@@ -172,6 +172,47 @@ const generateResponseWithOpenAI = async (userQuery, context, intentions, genera
   }
 };
 
+// Function to generate suggested prompts
+const generateSuggestedPrompts = async (context) => {
+  try {
+    const prompt = `
+      Based on the following conversation context, suggest up to 5 helpful questions or topics that the user might be interested in. The prompts should be concise and relevant.
+
+      Conversation Context:
+      "${context}"
+
+      Suggested Prompts:
+    `;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are an assistant that suggests helpful prompts to users in a customer support chat." },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 150,
+      n: 1,
+      temperature: 0.7,
+    });
+
+    const responseText = completion.choices[0].message.content;
+
+    // Split the response into individual prompts
+    const prompts = responseText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line);
+
+    console.log('Suggested Prompts:', prompts);
+
+    return prompts;
+  } catch (error) {
+    console.error("Error generating suggested prompts:", error.message);
+    return [];
+  }
+};
+
+
 // Route to handle chat requests
 app.post('/api/chat', async (req, res) => {
   const { prompt, context, generateTitle } = req.body;
@@ -186,6 +227,20 @@ app.post('/api/chat', async (req, res) => {
     res.json({ message: response, title });
   } catch (error) {
     console.error('Error processing request:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Route to handle suggested prompts
+app.post('/api/suggested-prompts', async (req, res) => {
+  const { context } = req.body;
+
+  try {
+    // Generate suggestions using OpenAI's GPT-4 model
+    const prompts = await generateSuggestedPrompts(context);
+    res.json({ prompts });
+  } catch {
+    console.error('Error generating suggested prompts:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
