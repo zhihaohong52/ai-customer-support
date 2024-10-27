@@ -1,4 +1,4 @@
-// frontend/src/Chatbot.js
+// frontend/src/pages/Chatbot.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -18,7 +18,7 @@ import {
   Stack,
 } from '@mui/material';
 import { Menu as MenuIcon, Delete as DeleteIcon, Send as SendIcon } from '@mui/icons-material';
-import { firestore } from './firebase'; // Firestore integration
+import { firestore } from '../firebase'; // Firestore integration
 import {
   collection,
   addDoc,
@@ -29,7 +29,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { format, isToday, isYesterday } from 'date-fns';
-import './Chatbot.css';
+import '../Chatbot.css';
 
 const Chatbot = ({ user }) => {
   // State variables

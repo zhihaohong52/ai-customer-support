@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase'; // Firebase configuration
-import Chatbot from './Chatbot';
+import Home from './pages/Home';
 import './App.css';
 
 function App() {
+
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -123,7 +124,7 @@ function App() {
             </div>
           </div>
         ) : (
-            <Chatbot user={user} />
+            <Home user={user} />
         )}
       </main>
     </div>
