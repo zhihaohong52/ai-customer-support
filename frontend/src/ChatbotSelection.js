@@ -13,7 +13,7 @@ function ChatbotSelection({ onSelect }) {
     },
     {
       id: 'financial-planning',
-      title: 'Financial Planning',
+      title: 'Financial Planning Assistant',
       description: 'Plan your finances with expert advice and tools.',
       image: '/images/financial-planning.png',
     },

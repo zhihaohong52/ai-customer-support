@@ -34,6 +34,8 @@ import {
   onSnapshot
 } from 'firebase/firestore'
 import { format, isToday, isYesterday } from 'date-fns'
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import './Chatbot.css'
 import PropTypes from 'prop-types'
 import FinancialForm from './FinancialForm'
@@ -413,6 +415,7 @@ const Chatbot = ({ user, chatbot }) => {
 
   // Function to fetch suggested prompts
   const fetchSuggestedPrompts = async () => {
+    console.log('Fetching suggested prompts...')
     setIsFetchingPrompts(true) // Start loading
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080'
@@ -669,6 +672,12 @@ const Chatbot = ({ user, chatbot }) => {
     updateChat()
   }
 
+  const formatMessage = (message) => {
+    const rawMarkup = marked(message);
+    const sanitizedMarkup = DOMPurify.sanitize(rawMarkup);
+    return sanitizedMarkup;
+  };
+
   return (
     <Box
       className='chat-container'
@@ -748,7 +757,7 @@ const Chatbot = ({ user, chatbot }) => {
                     borderTopRightRadius: msg.sender === 'user' ? '0px' : '16px'
                   }}
                 >
-                  {/* Render FinancialForm if message type is 'form' */}
+                  {/* Render FinancialForm if message type is 'form', along with the message text */}
                   {msg.type === 'form' ? (
                     <>
                       <Typography variant='body1' gutterBottom>
@@ -761,7 +770,11 @@ const Chatbot = ({ user, chatbot }) => {
                       />
                     </>
                   ) : (
-                    <Typography variant='body1'>{msg.text}</Typography>
+                    // Use dangerouslySetInnerHTML to render formatted message
+                    <Typography
+                      variant='body1'
+                      dangerouslySetInnerHTML={{ __html: formatMessage(msg.text) }}
+                    />
                   )}
                   {/* Timestamp */}
                   <Box
