@@ -94,23 +94,15 @@ const formatNewsSentiment = (sentimentData) => {
  * @param {string} context - The conversation history as a string.
  * @returns {string|null} - The previously fetched stock data or null.
  */
+/**
+ * Function to check if stock data is already in the conversation history.
+ * @param {string} symbol - The stock symbol.
+ * @param {string} context - The conversation history as a string.
+ * @returns {boolean} - True if stock data is already present, false otherwise.
+ */
 const getPreviousStockDataFromHistory = (symbol, context) => {
-  // Split context by newlines to mimic message history
-  const lines = context.split('\n');
-
-  // Reverse the array to search from the most recent message backward
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i];
-    // Check if the line includes both the symbol and stock quote data
-    if (line.includes(`Real-Time Stock Quote for ${symbol}`) && line.includes(`News Sentiment for ${symbol}`)) {
-      return line;
-    }
-  }
-  return null;
+  return context.includes(`Real-Time Stock Quote for ${symbol}:`);
 };
-
-// Track if stock data was provided in the initial query
-let stockDataProvided = false;
 
 /**
  * Route to handle chat requests
@@ -127,6 +119,8 @@ router.post('/', async (req, res) => {
     let queryEmbedding = [];
     let results = [];
     let intentions = '';
+    let updatedContext = context; // Initialize updatedContext with the original context
+    let additionalResponseData = ''; // Initialize an empty string for any additional data to include in the response
 
     // Handle 'ai-customer-support' chatbot type
     if (chatbot === 'ai-customer-support') {
@@ -135,23 +129,30 @@ router.post('/', async (req, res) => {
       intentions = `Relevant intentions: ${results.join(', ')}`;
     }
 
-    // Handle 'stock-market' chatbot type by fetching stock data only for the initial query
+    // Handle 'stock-market' chatbot type
     if (chatbot === 'stock-market') {
-      const stockSymbolMatches = prompt.match(/\b[A-Z]{1,5}(?:\.[A-Z]{2,4})?\b/g);
+      // Extract stock symbols from the prompt
+      const stockSymbolMatches = prompt.match(/\b[A-Z]{1,5}(?:\.[A-Z]{1,4})?\b/g);
       let symbols = stockSymbolMatches ? [...new Set(stockSymbolMatches)] : [];
 
-      if (!stockDataProvided && symbols.length > 0) {
-        // Initial query: fetch stock data and set the flag
-        console.log('Fetching stock data for initial query');
-        stockDataProvided = true;
+      // Check if stock data is already in the context
+      const stockDataAlreadyProvided = symbols.every(symbol =>
+        context.includes(`Real-Time Stock Quote for ${symbol}:`)
+      );
+
+      if (!stockDataAlreadyProvided && symbols.length > 0) {
+        // Fetch stock data since it hasn't been provided yet
+        console.log('Fetching stock data for symbols:', symbols);
 
         const stockDataPromises = symbols.map(async (symbol) => {
           try {
-            const previousData = getPreviousStockDataFromHistory(symbol, context);
-            if (previousData) {
-              return previousData;
+            const previousDataExists = getPreviousStockDataFromHistory(symbol, context);
+            if (previousDataExists) {
+              console.log(`Stock data for ${symbol} is already in the context.`);
+              return ''; // Skip fetching if data is already in context
             }
 
+            // Fetch stock data
             const quoteData = await getRealTimeQuote(symbol);
             const timeSeries = await getDailyTimeSeries(symbol, { period: '1mo', interval: '1d' });
             const sentimentData = await getNewsSentiment(symbol);
@@ -161,40 +162,26 @@ router.post('/', async (req, res) => {
 
             return `${formattedQuote}\n${formattedSentiment}`;
           } catch (error) {
-            console.error('Error fetching stock data:', error.message);
+            console.error(`Error fetching stock data for ${symbol}:`, error.message);
             return `Sorry, I couldn't retrieve complete data for the stock symbol "${symbol}". Please ensure it's correct and try again.`;
           }
         });
 
         const stockResponses = await Promise.all(stockDataPromises);
-        const combinedResponse = stockResponses.join('\n');
+        const combinedStockData = stockResponses.filter(response => response).join('\n\n');
 
-        return res.json({
-          message: combinedResponse,
-          title: generateTitle ? `Stock Analysis: ${symbols.join(', ')}` : null,
-        });
-      } else {
-        // Follow-up question: send directly to GPT without fetching stock data
-        console.log('Handling follow-up question');
-        const { response, title } = await generateResponseWithAI(
-          prompt,
-          context,
-          intentions,
-          generateTitle,
-          chatbot,
-          interestRate,
-          getChatbotRole(chatbot),
-          geminiModel
-        );
+        // Update the conversation context by appending the new stock data
+        updatedContext = `${context}\n${combinedStockData}`;
 
-        return res.json({ message: response, title });
+        // Include the stock data in the response sent to the user after generating the AI response
+        additionalResponseData = combinedStockData;
       }
     }
 
-    // Default case: other chatbot types
-    const { response, title } = await generateResponseWithAI(
+    // Generate AI response using the updated context
+    const { response: aiResponse, title } = await generateResponseWithAI(
       prompt,
-      context,
+      updatedContext,
       intentions,
       generateTitle,
       chatbot,
@@ -203,7 +190,17 @@ router.post('/', async (req, res) => {
       geminiModel
     );
 
-    res.json({ message: response, title });
+    // Prepare the final response
+    let finalResponse = aiResponse;
+
+    // If there is additional data (e.g., stock data), include it in the final response
+    if (additionalResponseData) {
+      finalResponse = `${additionalResponseData}\n\n${aiResponse}`.trim();
+    }
+
+    // Send the response
+    return res.json({ message: finalResponse, title });
+
   } catch (error) {
     console.error('Error processing /api/chat request:', error.message);
     res.status(500).json({ error: error.message });

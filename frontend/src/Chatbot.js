@@ -131,8 +131,8 @@ const Chatbot = ({ user, chatbot }) => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Load chat history when component mounts
-  useEffect(() => {
+   // Load chat history when component mounts or chatbot changes
+   useEffect(() => {
     const fetchChats = async () => {
       try {
         const chatSnapshot = await getDocs(chatCollectionRef)
@@ -140,19 +140,14 @@ const Chatbot = ({ user, chatbot }) => {
           id: doc.id,
           ...doc.data()
         }))
+
         // Filter chats based on selected chatbot
         const filteredChats = chatList.filter(chat => chat.chatbot === chatbot)
 
         // Sort by updatedAt in descending order (most recent first)
         const sortedChats = filteredChats.sort((a, b) => {
-          const dateA = new Date(
-            a.updatedAt ||
-              (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : Date.now())
-          )
-          const dateB = new Date(
-            b.updatedAt ||
-              (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : Date.now())
-          )
+          const dateA = new Date(a.updatedAt || a.createdAt?.seconds * 1000)
+          const dateB = new Date(b.updatedAt || b.createdAt?.seconds * 1000)
           return dateB - dateA
         })
 
@@ -171,49 +166,25 @@ const Chatbot = ({ user, chatbot }) => {
       }
     }
     fetchChats()
-  }, [user, chatbot]) // Re-run when 'chatbot' changes
+  }, [user, chatbot]) // Re-run when 'chatbot' or 'user' changes
 
   // Watch for changes in the selected chat
   useEffect(() => {
     if (selectedChatId) {
-      const chatDocRef = doc(
-        firestore,
-        `users/${user.uid}/chats/${selectedChatId}`
-      )
-      const unsubscribe = onSnapshot(chatDocRef, docSnap => {
+      const chatDocRef = doc(firestore, `users/${user.uid}/chats/${selectedChatId}`)
+      const unsubscribe = onSnapshot(chatDocRef, (docSnap) => {
         if (docSnap.exists()) {
           setMessages(docSnap.data().messages || [])
+        } else {
+          console.log('Chat document does not exist')
+          setMessages([])
         }
       })
       return () => unsubscribe()
+    } else {
+      setMessages([])
     }
   }, [selectedChatId, user])
-
-  // Add initial bot message when a new chat starts
-  useEffect(() => {
-    if (messages.length === 0 && selectedChatId) {
-      const initialBotMessage = getInitialBotMessage();
-      setMessages([initialBotMessage]);
-
-      // Update Firestore with the initial message
-      const updateChat = async () => {
-        try {
-          const chatDocRef = doc(
-            firestore,
-            `users/${user.uid}/chats/${selectedChatId}`
-          );
-          await updateDoc(chatDocRef, {
-            messages: [initialBotMessage],
-            updatedAt: new Date().toISOString()
-          });
-        } catch (error) {
-          console.error('Error updating chat with initial message:', error);
-        }
-      };
-      updateChat();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, chatbot, selectedChatId]); // Re-run when 'chatbot' changes
 
   // Watch for changes and fetch suggested prompts when messages change
   useEffect(() => {
@@ -226,33 +197,41 @@ const Chatbot = ({ user, chatbot }) => {
     ) {
       fetchSuggestedPrompts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, isTyping]);
 
   // Start a new chat and update the chat history
   const startNewChat = async () => {
     try {
+      const initialBotMessage = getInitialBotMessage(); // Get the initial bot message based on the chatbot
+
+      // Create a new chat document in Firestore with the initial bot message
       const newChatRef = await addDoc(chatCollectionRef, {
         createdAt: new Date(),
         title: getInitialChatTitle(), // Initial title based on chatbot
-        messages: [],
+        messages: [initialBotMessage], // Include the initial bot message
         chatbot: chatbot // Store chatbot type
-      })
+      });
 
-      // Fetch the updated chat list after creating the new chat
-      const chatSnapshot = await getDocs(chatCollectionRef)
-      const chatList = chatSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      // Filter based on chatbot
-      const filteredChats = chatList.filter(chat => chat.chatbot === chatbot)
-      setChats(filteredChats) // Update the chat history
-      setSelectedChatId(newChatRef.id) // Set the new chat as the selected chat
-      setMessages([]) // Clear messages for the new chat
+      // Update the local state
+      setSelectedChatId(newChatRef.id); // Set the new chat as the selected chat
+      setMessages([initialBotMessage]); // Set messages to include the initial bot message
+
+      // Update the chat list
+      setChats(prevChats => [
+        {
+          id: newChatRef.id,
+          createdAt: new Date(),
+          title: getInitialChatTitle(),
+          messages: [initialBotMessage],
+          chatbot: chatbot
+        },
+        ...prevChats
+      ]);
     } catch (error) {
-      console.error('Error creating a new chat:', error)
+      console.error('Error creating a new chat:', error);
     }
-  }
+  };
 
   // Function to determine initial chat title
   const getInitialChatTitle = () => {

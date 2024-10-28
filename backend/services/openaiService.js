@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import config from '../config/env.js';
 import retryWithBackoff from '../utils/retry.js';
 import axios from 'axios';
+import { max } from '@xenova/transformers';
 
 /**
  * Initialize OpenAI instance
@@ -117,6 +118,7 @@ const generateResponseWithAI = async (
         You are a financial planning assistant.
         User asked: "${userQuery}"
         Historical context: "${context}"
+        You may assume a Singaporean user for this scenario.
         Based on this, provide a comprehensive financial advice response.
       `;
       break;
@@ -152,7 +154,7 @@ const generateResponseWithAI = async (
           { role: 'system', content: `You are a ${chatbotRole}.` },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 150,
+        max_tokens: 300,
         temperature: 0.7,
       })
     );
