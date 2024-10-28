@@ -11,7 +11,6 @@ const requiredEnvVars = [
   'MILVUS_ADDRESS',
   'MILVUS_TOKEN',
   'HUGGINGFACE_API_TOKEN',
-  'ALPHA_VANTAGE_API_KEY',
 ];
 
 requiredEnvVars.forEach((varName) => {
@@ -28,5 +27,4 @@ export default {
   milvusAddress: process.env.MILVUS_ADDRESS,
   milvusToken: process.env.MILVUS_TOKEN,
   huggingFaceApiToken: process.env.HUGGINGFACE_API_TOKEN,
-  alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
 };
