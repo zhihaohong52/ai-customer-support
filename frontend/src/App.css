@@ -23,7 +23,7 @@ body {
 
 /* Header styling */
 .App-header {
-  background-color: #282c34;
+  background-color: black;
   display: flex;
   justify-content: center; /* Center the title */
   align-items: center;
@@ -32,6 +32,11 @@ body {
   position: relative;
   width: 100%;
   height: var(--header-height); /* Use the CSS variable for header height */
+}
+
+.App-logo {
+  height: 50px;
+  pointer-events: none; /* Remove default pointer events */
 }
 
 /* Main section styling, takes the remaining height after the header */
@@ -115,7 +120,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #4285f4;
+  border: 1px solid #6CB6FD;
   border-radius: 5px;
   padding: 10px 15px;
   font-size: 16px;
@@ -166,4 +171,39 @@ body {
   .header-title {
     font-size: 18px; /* Decrease font size for smaller screens */
   }
+}
+
+/* Ensure the logo remains the same size and appearance */
+.App-logo {
+  height: 50px;
+  pointer-events: none; /* Remove default pointer events */
+}
+
+/* Override pointer-events to allow click events */
+.header-content .App-logo {
+  pointer-events: auto;
+}
+
+/* Focus Styles for Accessibility */
+.header-content .App-logo:focus {
+  outline: 2px solid #4285f4; /* Add a visible focus outline */
+  outline-offset: 4px;
+}
+
+/* Active State for Click Feedback */
+.header-content .App-logo:active {
+  transform: scale(0.98); /* Slightly shrink the logo on click */
+  transition: transform 0.1s ease-in-out;
+}
+
+.App-main {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.App-main.hidden {
+  opacity: 0;
+}
+
+.App-main.visible {
+  opacity: 1;
 }
