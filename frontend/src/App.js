@@ -1,9 +1,20 @@
-// fronted/src/App.js
+// frontend/src/App.js
+
 import React, { useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from 'firebase/auth';
 import { auth } from './firebase'; // Firebase configuration
 import Chatbot from './Chatbot';
+import ChatbotSelection from './ChatbotSelection';
 import './App.css';
+import Avatar from '@mui/material/Avatar';
+import PropTypes from 'prop-types'; // Optional: If using PropTypes elsewhere
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -11,6 +22,7 @@ function App() {
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false); // Toggle between login and register
   const [dropdownOpen, setDropdownOpen] = useState(false); // Toggle dropdown
+  const [selectedChatbot, setSelectedChatbot] = useState(null);
 
   // Google sign-in
   const handleGoogleSignIn = () => {
@@ -46,22 +58,48 @@ function App() {
     setDropdownOpen(!dropdownOpen);
   };
 
+  // Function to handle logo click
+  const handleLogoClick = () => {
+    setSelectedChatbot(null); // Reset to show chatbot selection
+  };
+
   return (
     <div className="App">
       <header className={`App-header ${user ? 'logged-in' : ''}`}>
         <div className="header-content">
-          <h1 className="text-2xl font-bold header-title">AI Customer Support</h1>
+          <img
+            src="logo.png"
+            alt="Logo - Click to return to chatbot selection"
+            className="App-logo cursor-pointer"
+            onClick={handleLogoClick}
+            tabIndex={0}
+            role="button"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleLogoClick();
+              }
+            }}
+            aria-label="Return to chatbot selection"
+          />
           {user && (
             <div className="profile-container">
               {/* Display "Welcome {username}" */}
               <div className="welcome-text">Welcome, {user.displayName || user.email}</div>
 
               {/* Profile Picture */}
-              <img
+              <Avatar
                 src={user.photoURL || 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png'}  // Use user's profile picture or a placeholder
                 alt="Profile"
                 className="profile-pic"
                 onClick={toggleDropdown}
+                tabIndex={0}
+                role="button"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    toggleDropdown();
+                  }
+                }}
+                aria-label="Toggle profile menu"
               />
 
               {/* Dropdown Menu */}
@@ -80,7 +118,7 @@ function App() {
       <main className="App-main">
         {!user ? (
           <div className='signin-container'>
-            <h2 className="text-xl mb-4">Sign In</h2>
+            <h2 className="text-xl mb-4">Sign In / Register</h2>
 
             <div className="input-container mb-4">
               <input
@@ -122,8 +160,10 @@ function App() {
               </button>
             </div>
           </div>
+        ) : !selectedChatbot ?(
+          <ChatbotSelection onSelect={setSelectedChatbot} />
         ) : (
-            <Chatbot user={user} />
+          <Chatbot user={user} chatbot={selectedChatbot} />
         )}
       </main>
     </div>
