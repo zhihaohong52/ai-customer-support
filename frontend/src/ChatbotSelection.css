@@ -1,0 +1,29 @@
+/* frontend/src/ChatbotSelection.css */
+
+.chatbot-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.chatbot-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chatbot-buttons button {
+    padding: 15px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background-color: #4285f4;
+    color: white;
+    border-radius: 5px;
+}
+
+.chatbot-buttons button:hover {
+    background-color: #3367d6;
+}
