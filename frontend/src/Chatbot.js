@@ -79,7 +79,7 @@ const Chatbot = ({ user, chatbot }) => {
       case 'financial-planning':
         return {
           type: 'form',
-          text: "Hello! I'm your Financial Planning Assistant. Let's get started with some details.",
+          text: "Hello! I'm your Financial Planning Assistant. Let's get started with some details to calculate the interest rate needed.",
           sender: 'ai',
           timestamp: new Date().toISOString(),
           profilePicture: '/images/financial-planning.png'
@@ -87,7 +87,7 @@ const Chatbot = ({ user, chatbot }) => {
       case 'stock-market':
         return {
           type: 'text',
-          text: "Greetings! I'm your Stock Market Assistant. How can I assist you with the stock market today?",
+          text: "Greetings! I'm your Stock Market Assistant. How can I assist you with the stock market today? You may type a stock symbol to fetch real-time data.",
           sender: 'ai',
           timestamp: new Date().toISOString(),
           profilePicture: '/images/stock-market.png'
